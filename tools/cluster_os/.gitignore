@@ -1,0 +1,5 @@
+cluster_osd
+cluster_os_admin
+*.o
+tests/test_config
+tests/*.o

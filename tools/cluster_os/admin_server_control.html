@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server Control - Cluster OS Admin</title>
+<style>
+:root {
+  --bg: #171b24;
+  --panel: #202635;
+  --panel2: #252d3f;
+  --line: #30384d;
+  --text: #eef2ff;
+  --muted: #a6b0c7;
+  --accent: #2f8cff;
+  --green: #66ea58;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  background: radial-gradient(1200px 700px at -200px 1000px, #364364 0%, var(--bg) 55%);
+  color: var(--text);
+}
+.app {
+  width: min(1180px, 100vw);
+  margin: 0 auto;
+  min-height: 100vh;
+  border-left: 1px solid #2b3245;
+  border-right: 1px solid #2b3245;
+  background: linear-gradient(180deg, #1a1f2b 0%, #171b24 100%);
+}
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+  font-size: 22px;
+  letter-spacing: .2px;
+}
+.brand .logo {
+  width: 34px;
+  height: 25px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #27a5ff, #2268ff);
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+}
+.search {
+  margin-left: auto;
+  width: min(420px, 45vw);
+  display: flex;
+  align-items: center;
+  background: #0f1520;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.search input {
+  flex: 1;
+  border: 0;
+  outline: 0;
+  color: var(--text);
+  background: transparent;
+  font-size: 16px;
+}
+.avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid #555f7d;
+  background: linear-gradient(180deg, #ffdbbf, #c27c4e);
+}
+.tabs {
+  display: flex;
+  gap: 28px;
+  padding: 10px 20px 0;
+  border-bottom: 1px solid var(--line);
+}
+.tab {
+  padding: 10px 0 11px;
+  color: #d7dded;
+  border-bottom: 3px solid transparent;
+  font-size: 18px;
+  cursor: default;
+}
+.tab.active {
+  border-bottom-color: var(--accent);
+  color: #fff;
+}
+.layout {
+  display: grid;
+  grid-template-columns: 270px 1fr;
+  min-height: calc(100vh - 126px);
+}
+.sidebar {
+  border-right: 1px solid var(--line);
+  padding: 18px 14px;
+  position: relative;
+}
+.sidebar h2 {
+  margin: 0 0 10px;
+  font-size: 18px;
+}
+.cluster-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: calc(100vh - 260px);
+  overflow: auto;
+}
+.cluster-item {
+  border-radius: 8px;
+  color: #d8deef;
+  padding: 6px 10px;
+  margin: 4px 0;
+  font-size: 18px;
+  cursor: pointer;
+}
+.cluster-item.active,
+.cluster-item:hover { background: linear-gradient(180deg, #2990ff, #2f72db); color: #fff; }
+.create-btn {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 16px;
+  border: 1px solid #5f88d1;
+  background: linear-gradient(180deg, #2f97ff, #2469cf);
+  color: #fff;
+  font-size: 18px;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.main {
+  padding: 18px 22px;
+}
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.cluster-title {
+  font-size: 40px;
+  font-weight: 700;
+  display: inline-block;
+  border-bottom: 4px solid var(--green);
+  padding-bottom: 4px;
+}
+.pills { display: flex; gap: 8px; }
+.pill {
+  background: #313a4f;
+  border: 1px solid #49536c;
+  color: #f6f8ff;
+  font-size: 16px;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.summary {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 14px;
+}
+.card {
+  background: linear-gradient(180deg, var(--panel2), #1f2533);
+  border: 1px solid #39425b;
+  border-radius: 10px;
+  padding: 14px;
+}
+.card h3 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+.server-up {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 8px 0 12px;
+}
+.server-up .ratio {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--green);
+  line-height: 1;
+}
+.btn {
+  border: 1px solid #5a647f;
+  background: #2f3648;
+  color: #fff;
+  font-size: 16px;
+  border-radius: 8px;
+  padding: 8px 14px;
+}
+.select {
+  margin-top: 10px;
+  background: #323b52;
+  border: 1px solid #4f5975;
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 20px;
+}
+.metric-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  font-size: 18px;
+  margin: 4px 0;
+}
+.dots {
+  text-align: center;
+  color: #9ba6c3;
+  margin: 6px 0;
+}
+.nodes {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 12px;
+}
+.node {
+  border: 1px solid #3e465f;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #222a3a;
+}
+.node-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background: #2f3647;
+  font-size: 17px;
+  font-weight: 700;
+}
+.node-body {
+  padding: 16px;
+  display: flex;
+  justify-content: space-around;
+}
+.dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #7d879f;
+}
+.dot.online { background: var(--green); box-shadow: 0 0 0 3px rgba(102, 234, 88, .18); }
+.hidden { display: none; }
+.toast {
+  position: fixed;
+  right: 22px;
+  bottom: 18px;
+  background: #252d3f;
+  border: 1px solid #4f5a75;
+  border-radius: 10px;
+  color: #e9eeff;
+  padding: 10px 12px;
+  font-size: 14px;
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><span class="logo">⚓</span>Clusters</div>
+    <label class="search"><input id="clusterSearch" value="" placeholder="Search"><span>🔍</span></label>
+    <div class="avatar" title="admin"></div>
+  </header>
+
+  <nav class="tabs">
+    <div class="tab">⚙ Clusters</div>
+    <div class="tab active">Images</div>
+    <div class="tab">Containers</div>
+    <div class="tab">Volumes</div>
+    <div class="tab">Networks</div>
+  </nav>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <h2>Clusters</h2>
+      <ul id="clusterList" class="cluster-list"></ul>
+      <button class="create-btn">+ Create Cluster</button>
+    </aside>
+
+    <main class="main">
+      <div class="header-row">
+        <div id="activeCluster" class="cluster-title">prod-cluster</div>
+        <div class="pills">
+          <button class="pill">✺ orchestring</button>
+          <button class="pill">Scale 5</button>
+        </div>
+      </div>
+
+      <section class="summary">
+        <div class="card">
+          <h3 id="summaryCluster">prod-cluster</h3>
+          <div class="server-up">
+            <div id="summaryRatio" class="ratio">3/3</div>
+            <div><div>Servers (Up)</div><div id="summaryUp" class="muted" style="color:var(--green)">Up /3</div></div>
+            <button id="scaleBtn" class="btn">Scale</button>
+          </div>
+          <div class="select"><span id="summaryWorkload">orchestring</span><span>⌄</span></div>
+          <p id="summaryStatus" style="margin:8px 0 0;color:var(--muted)">normal</p>
+        </div>
+        <div class="card">
+          <h3 id="metricNodeName">prod-cluster-orchestring-1</h3>
+          <div class="metric-row"><span>CPU Usage</span><strong id="metricCpu">45%</strong></div>
+          <div class="metric-row"><span>Memory Usage</span><strong id="metricMemory">60%</strong></div>
+          <div class="metric-row"><span>Disk Usage</span><strong id="metricDisk">30%</strong></div>
+          <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn">Restart</button></div>
+        </div>
+      </section>
+
+      <div class="dots">● ●</div>
+
+      <section id="nodeGrid" class="nodes">
+        <article class="node"><div class="node-head"><span>prod-cluster-orchestring-1</span><span>⌄</span></div><div class="node-body"><span class="dot online"></span><span class="dot online"></span><span class="dot"></span></div></article>
+        <article class="node"><div class="node-head"><span>prod-cluster-orchestring-1</span><span>⌄</span></div><div class="node-body"><span class="dot online"></span><span class="dot online"></span><span class="dot"></span></div></article>
+        <article class="node"><div class="node-head"><span>prod-cluster-orchestring-2</span><span>⌄</span></div><div class="node-body"><span class="dot online"></span><span class="dot online"></span><span class="dot"></span></div></article>
+        <article class="node"><div class="node-head"><span>prod-cluster-orchestring-2</span><span>⌄</span></div><div class="node-body"><span class="dot online"></span><span class="dot online"></span><span class="dot"></span></div></article>
+        <article class="node"><div class="node-head"><span>prod-cluster-orchestring-3</span><span>⌄</span></div><div class="node-body"><span class="dot online"></span><span class="dot online"></span><span class="dot"></span></div></article>
+        <article class="node"><div class="node-head"><span>prod-cluster-orchestring-3</span><span>⌄</span></div><div class="node-body"><span class="dot online"></span><span class="dot online"></span><span class="dot"></span></div></article>
+      </section>
+    </main>
+  </div>
+</div>
+<div id="toast" class="toast hidden">Cluster scaled request submitted.</div>
+<script>
+const searchInput = document.getElementById('clusterSearch');
+const clusterList = document.getElementById('clusterList');
+const activeCluster = document.getElementById('activeCluster');
+const summaryCluster = document.getElementById('summaryCluster');
+const summaryRatio = document.getElementById('summaryRatio');
+const summaryUp = document.getElementById('summaryUp');
+const summaryWorkload = document.getElementById('summaryWorkload');
+const summaryStatus = document.getElementById('summaryStatus');
+const metricNodeName = document.getElementById('metricNodeName');
+const metricCpu = document.getElementById('metricCpu');
+const metricMemory = document.getElementById('metricMemory');
+const metricDisk = document.getElementById('metricDisk');
+const nodeGrid = document.getElementById('nodeGrid');
+const toast = document.getElementById('toast');
+let allClusters = [];
+let selectedCluster = 'prod-cluster';
+
+function setActive(name) {
+  selectedCluster = name;
+  activeCluster.textContent = name;
+  summaryCluster.textContent = name;
+  [...clusterList.querySelectorAll('.cluster-item')].forEach(item => {
+    item.classList.toggle('active', item.dataset.name === name);
+  });
+}
+
+function renderClusterList() {
+  const q = searchInput.value.trim().toLowerCase();
+  clusterList.innerHTML = '';
+  allClusters
+    .filter(name => name.toLowerCase().includes(q))
+    .forEach(name => {
+      const item = document.createElement('li');
+      item.className = 'cluster-item';
+      item.dataset.name = name;
+      item.textContent = name;
+      item.addEventListener('click', () => setActive(name));
+      clusterList.appendChild(item);
+    });
+  if (!allClusters.includes(selectedCluster) && allClusters.length) {
+    selectedCluster = allClusters[0];
+  }
+  if (selectedCluster) {
+    setActive(selectedCluster);
+  }
+}
+
+function renderNodes(nodes) {
+  nodeGrid.innerHTML = '';
+  nodes.forEach(node => {
+    const article = document.createElement('article');
+    article.className = 'node';
+    const head = document.createElement('div');
+    head.className = 'node-head';
+    const title = document.createElement('span');
+    title.textContent = node.name;
+    const caret = document.createElement('span');
+    caret.textContent = '⌄';
+    head.append(title, caret);
+    const body = document.createElement('div');
+    body.className = 'node-body';
+    const total = Math.max(node.total || 0, 1);
+    const online = Math.max(Math.min(node.online || 0, total), 0);
+    for (let i = 0; i < total; i++) {
+      const dot = document.createElement('span');
+      dot.className = `dot${i < online ? ' online' : ''}`;
+      body.appendChild(dot);
+    }
+    article.append(head, body);
+    nodeGrid.appendChild(article);
+  });
+}
+
+function updateSummary(state) {
+  summaryRatio.textContent = `${state.summary.up}/${state.summary.total}`;
+  summaryUp.textContent = `Up /${state.summary.total}`;
+  summaryWorkload.textContent = state.summary.workload;
+  summaryStatus.textContent = state.summary.status;
+  metricNodeName.textContent = state.metrics.node;
+  metricCpu.textContent = `${state.metrics.cpu}%`;
+  metricMemory.textContent = `${state.metrics.memory}%`;
+  metricDisk.textContent = `${state.metrics.disk}%`;
+  renderNodes(state.nodes);
+}
+
+async function fetchState() {
+  try {
+    const response = await fetch('/api/admin/state', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`state request failed: ${response.status}`);
+    }
+    const state = await response.json();
+    allClusters = state.clusters || [];
+    if (!selectedCluster && allClusters.length) {
+      selectedCluster = allClusters[0];
+    }
+    renderClusterList();
+    updateSummary(state);
+  } catch (err) {
+    toast.textContent = `Unable to load admin state: ${err.message}`;
+    toast.classList.remove('hidden');
+  }
+}
+
+searchInput.addEventListener('input', (e) => {
+  renderClusterList();
+});
+
+document.getElementById('scaleBtn').addEventListener('click', async () => {
+  try {
+    const response = await fetch('/api/admin/scale', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cluster: selectedCluster })
+    });
+    if (!response.ok) {
+      throw new Error(`scale request failed: ${response.status}`);
+    }
+    toast.textContent = `Scale request submitted for ${selectedCluster}.`;
+  } catch (err) {
+    toast.textContent = `Scale request failed: ${err.message}`;
+  }
+  toast.classList.remove('hidden');
+  clearTimeout(window.toastTimer);
+  window.toastTimer = setTimeout(() => toast.classList.add('hidden'), 1800);
+});
+
+fetchState();
+setInterval(fetchState, 5000);
+</script>
+</body>
+</html>
