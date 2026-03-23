@@ -1,0 +1,33 @@
+cluster_osd - Role-based cluster OS userspace daemon skeleton
+
+This directory provides a minimal userspace daemon implementation for a
+headless role-based cluster OS model.
+
+Roles
+-----
+- orchestring
+- job_cluster_server
+- admin
+
+Configuration
+-------------
+By default, cluster_osd reads /etc/cluster_os/config.conf. This minimal daemon
+accepts flat key/value lines using either `key=value` or `key: value` format
+(see examples/).
+
+Admin GUI Notifications
+-----------------------
+Set `admin.gui.notifications=true` to emit Server Control notifications in admin
+role cycles.
+
+Build
+-----
+make -C tools/cluster_os
+
+Tests
+-----
+make -C tools/cluster_os test
+
+Run one test cycle
+------------------
+./tools/cluster_os/cluster_osd -n -c tools/cluster_os/examples/config.admin
