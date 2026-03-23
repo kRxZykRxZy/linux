@@ -31,3 +31,13 @@ make -C tools/cluster_os test
 Run one test cycle
 ------------------
 ./tools/cluster_os/cluster_osd -n -c tools/cluster_os/examples/config.admin
+
+Admin UI mock (Server Control)
+------------------------------
+A static admin dashboard mock inspired by the requested style is available at:
+
+tools/cluster_os/admin_server_control.html
+
+Open it directly in a browser to preview:
+
+xdg-open tools/cluster_os/admin_server_control.html
