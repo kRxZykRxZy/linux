@@ -290,14 +290,7 @@ body {
   <div class="layout">
     <aside class="sidebar">
       <h2>Clusters</h2>
-      <ul id="clusterList" class="cluster-list">
-        <li class="cluster-item active" data-name="prod-cluster">prod-cluster</li>
-        <li class="cluster-item" data-name="dev-cluster">dev-cluster</li>
-        <li class="cluster-item" data-name="and-cluster">and-cluster</li>
-        <li class="cluster-item" data-name="test-cluster">test-cluster</li>
-        <li class="cluster-item" data-name="pod-cluster">pod-cluster</li>
-        <li class="cluster-item" data-name="staging-cluster">staging-cluster</li>
-      </ul>
+      <ul id="clusterList" class="cluster-list"></ul>
       <button class="create-btn">+ Create Cluster</button>
     </aside>
 
@@ -314,18 +307,18 @@ body {
         <div class="card">
           <h3 id="summaryCluster">prod-cluster</h3>
           <div class="server-up">
-            <div class="ratio">3/3</div>
-            <div><div>Servers (Up)</div><div class="muted" style="color:var(--green)">Up /3</div></div>
+            <div id="summaryRatio" class="ratio">3/3</div>
+            <div><div>Servers (Up)</div><div id="summaryUp" class="muted" style="color:var(--green)">Up /3</div></div>
             <button id="scaleBtn" class="btn">Scale</button>
           </div>
-          <div class="select"><span>orchestring</span><span>⌄</span></div>
-          <p style="margin:8px 0 0;color:var(--muted)">normal</p>
+          <div class="select"><span id="summaryWorkload">orchestring</span><span>⌄</span></div>
+          <p id="summaryStatus" style="margin:8px 0 0;color:var(--muted)">normal</p>
         </div>
         <div class="card">
-          <h3>prod-cluster-orchestring-1</h3>
-          <div class="metric-row"><span>CPU Usage</span><strong>45%</strong></div>
-          <div class="metric-row"><span>Memory Usage</span><strong>60%</strong></div>
-          <div class="metric-row"><span>Disk Usage</span><strong>30%</strong></div>
+          <h3 id="metricNodeName">prod-cluster-orchestring-1</h3>
+          <div class="metric-row"><span>CPU Usage</span><strong id="metricCpu">45%</strong></div>
+          <div class="metric-row"><span>Memory Usage</span><strong id="metricMemory">60%</strong></div>
+          <div class="metric-row"><span>Disk Usage</span><strong id="metricDisk">30%</strong></div>
           <div style="display:flex;justify-content:flex-end;margin-top:14px"><button class="btn">Restart</button></div>
         </div>
       </section>
@@ -347,32 +340,133 @@ body {
 <script>
 const searchInput = document.getElementById('clusterSearch');
 const clusterList = document.getElementById('clusterList');
-const clusterItems = [...clusterList.querySelectorAll('.cluster-item')];
 const activeCluster = document.getElementById('activeCluster');
 const summaryCluster = document.getElementById('summaryCluster');
+const summaryRatio = document.getElementById('summaryRatio');
+const summaryUp = document.getElementById('summaryUp');
+const summaryWorkload = document.getElementById('summaryWorkload');
+const summaryStatus = document.getElementById('summaryStatus');
+const metricNodeName = document.getElementById('metricNodeName');
+const metricCpu = document.getElementById('metricCpu');
+const metricMemory = document.getElementById('metricMemory');
+const metricDisk = document.getElementById('metricDisk');
+const nodeGrid = document.getElementById('nodeGrid');
 const toast = document.getElementById('toast');
+let allClusters = [];
+let selectedCluster = 'prod-cluster';
 
-function setActive(item) {
-  clusterItems.forEach(i => i.classList.remove('active'));
-  item.classList.add('active');
-  activeCluster.textContent = item.dataset.name;
-  summaryCluster.textContent = item.dataset.name;
+function setActive(name) {
+  selectedCluster = name;
+  activeCluster.textContent = name;
+  summaryCluster.textContent = name;
+  [...clusterList.querySelectorAll('.cluster-item')].forEach(item => {
+    item.classList.toggle('active', item.dataset.name === name);
+  });
 }
 
-clusterItems.forEach(item => item.addEventListener('click', () => setActive(item)));
+function renderClusterList() {
+  const q = searchInput.value.trim().toLowerCase();
+  clusterList.innerHTML = '';
+  allClusters
+    .filter(name => name.toLowerCase().includes(q))
+    .forEach(name => {
+      const item = document.createElement('li');
+      item.className = 'cluster-item';
+      item.dataset.name = name;
+      item.textContent = name;
+      item.addEventListener('click', () => setActive(name));
+      clusterList.appendChild(item);
+    });
+  if (!allClusters.includes(selectedCluster) && allClusters.length) {
+    selectedCluster = allClusters[0];
+  }
+  if (selectedCluster) {
+    setActive(selectedCluster);
+  }
+}
+
+function renderNodes(nodes) {
+  nodeGrid.innerHTML = '';
+  nodes.forEach(node => {
+    const article = document.createElement('article');
+    article.className = 'node';
+    const head = document.createElement('div');
+    head.className = 'node-head';
+    const title = document.createElement('span');
+    title.textContent = node.name;
+    const caret = document.createElement('span');
+    caret.textContent = '⌄';
+    head.append(title, caret);
+    const body = document.createElement('div');
+    body.className = 'node-body';
+    const total = Math.max(node.total || 0, 1);
+    const online = Math.max(Math.min(node.online || 0, total), 0);
+    for (let i = 0; i < total; i++) {
+      const dot = document.createElement('span');
+      dot.className = `dot${i < online ? ' online' : ''}`;
+      body.appendChild(dot);
+    }
+    article.append(head, body);
+    nodeGrid.appendChild(article);
+  });
+}
+
+function updateSummary(state) {
+  summaryRatio.textContent = `${state.summary.up}/${state.summary.total}`;
+  summaryUp.textContent = `Up /${state.summary.total}`;
+  summaryWorkload.textContent = state.summary.workload;
+  summaryStatus.textContent = state.summary.status;
+  metricNodeName.textContent = state.metrics.node;
+  metricCpu.textContent = `${state.metrics.cpu}%`;
+  metricMemory.textContent = `${state.metrics.memory}%`;
+  metricDisk.textContent = `${state.metrics.disk}%`;
+  renderNodes(state.nodes);
+}
+
+async function fetchState() {
+  try {
+    const response = await fetch('/api/admin/state', { cache: 'no-store' });
+    if (!response.ok) {
+      throw new Error(`state request failed: ${response.status}`);
+    }
+    const state = await response.json();
+    allClusters = state.clusters || [];
+    if (!selectedCluster && allClusters.length) {
+      selectedCluster = allClusters[0];
+    }
+    renderClusterList();
+    updateSummary(state);
+  } catch (err) {
+    toast.textContent = `Unable to load admin state: ${err.message}`;
+    toast.classList.remove('hidden');
+  }
+}
 
 searchInput.addEventListener('input', (e) => {
-  const q = e.target.value.trim().toLowerCase();
-  clusterItems.forEach(item => {
-    item.classList.toggle('hidden', !item.dataset.name.toLowerCase().includes(q));
-  });
+  renderClusterList();
 });
 
-document.getElementById('scaleBtn').addEventListener('click', () => {
+document.getElementById('scaleBtn').addEventListener('click', async () => {
+  try {
+    const response = await fetch('/api/admin/scale', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cluster: selectedCluster })
+    });
+    if (!response.ok) {
+      throw new Error(`scale request failed: ${response.status}`);
+    }
+    toast.textContent = `Scale request submitted for ${selectedCluster}.`;
+  } catch (err) {
+    toast.textContent = `Scale request failed: ${err.message}`;
+  }
   toast.classList.remove('hidden');
   clearTimeout(window.toastTimer);
   window.toastTimer = setTimeout(() => toast.classList.add('hidden'), 1800);
 });
+
+fetchState();
+setInterval(fetchState, 5000);
 </script>
 </body>
 </html>

@@ -13,7 +13,7 @@ MAKEFLAGS += -r
 
 override CFLAGS += -O2 -Wall -Wextra -g -D_GNU_SOURCE
 
-ALL_TARGETS := cluster_osd
+ALL_TARGETS := cluster_osd cluster_os_admin
 ALL_PROGRAMS := $(patsubst %,$(OUTPUT)%,$(ALL_TARGETS))
 
 all: $(ALL_PROGRAMS)
@@ -22,6 +22,9 @@ $(OUTPUT)%.o: %.c
 	$(QUIET_CC)$(CC) $(CFLAGS) -c $< -o $@
 
 $(OUTPUT)cluster_osd: $(OUTPUT)cluster_osd.o $(OUTPUT)config.o
+	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
+
+$(OUTPUT)cluster_os_admin: $(OUTPUT)admin_app.o $(OUTPUT)config.o
 	$(QUIET_LINK)$(CC) $(CFLAGS) $(LDFLAGS) $^ -o $@
 
 test: all
